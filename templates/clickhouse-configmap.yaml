@@ -18,11 +18,10 @@ data:
             {{- if .Values.clickhouse.s3.region }}
             <region>{{ .Values.clickhouse.s3.region }}</region>
             {{- end }}
-            {{- if and .Values.clickhouse.s3.accessKeyId .Values.clickhouse.s3.secretAccessKey }}
-            <access_key_id>{{ .Values.clickhouse.s3.accessKeyId }}</access_key_id>
-            <secret_access_key>{{ .Values.clickhouse.s3.secretAccessKey }}</secret_access_key>
-            {{- end }}
             {{- if .Values.clickhouse.s3.useEnvironmentCredentials }}
+            <use_environment_credentials>true</use_environment_credentials>
+            {{- else }}
+            {{- /* When not using environment credentials (IAM/Workload Identity), read from env vars injected from Secret */ -}}
             <use_environment_credentials>true</use_environment_credentials>
             {{- end }}
             <metadata_path>/var/lib/clickhouse/disks/s3_disk/</metadata_path>

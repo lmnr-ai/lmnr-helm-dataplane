@@ -41,6 +41,20 @@ spec:
                   key: CLICKHOUSE_PASSWORD
             - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
               value: "1"
+            {{- if and .Values.clickhouse.s3.enabled (not .Values.clickhouse.s3.useEnvironmentCredentials) }}
+            {{- if and .Values.clickhouse.s3.accessKeyId .Values.clickhouse.s3.secretAccessKey }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "laminar-dataplane.resourceName" "dataplane-secrets" }}
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "laminar-dataplane.resourceName" "dataplane-secrets" }}
+                  key: AWS_SECRET_ACCESS_KEY
+            {{- end }}
+            {{- end }}
           resources:
             requests:
               cpu: {{ .Values.clickhouse.resources.requests.cpu | quote }}

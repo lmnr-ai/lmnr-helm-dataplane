@@ -1,5 +1,6 @@
 """Kubernetes cluster utilities."""
 
+import json
 import subprocess
 from typing import Optional, List, Tuple
 
@@ -19,7 +20,6 @@ def get_storage_classes() -> List[Tuple[str, bool]]:
             check=True
         )
         
-        import json
         data = json.loads(result.stdout)
         
         storage_classes = []
