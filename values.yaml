@@ -1,0 +1,113 @@
+# Laminar Data Plane Helm Chart - Default Values
+# ================================================
+
+# -- Cloud provider: "aws" or "gcp"
+# Determines default LoadBalancer annotations. Leave empty to skip defaults.
+cloudProvider: ""
+
+# -- Data Plane Proxy configuration
+dataPlaneProxy:
+  image:
+    repository: ghcr.io/lmnr-ai/lmnr-data-plane-proxy
+    tag: latest
+    pullPolicy: Always
+
+  # -- Init container that runs ClickHouse migrations before the proxy starts
+  initImage:
+    repository: ghcr.io/lmnr-ai/lmnr-data-plane-proxy-init-migration-runner
+    tag: latest
+    pullPolicy: Always
+
+  # -- Number of proxy replicas
+  replicaCount: 1
+
+  # -- Resource requests and limits for the proxy container
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+  # -- REQUIRED: Data plane public key provided by Laminar
+  dataPlanePublicKey: ""
+
+  # -- LoadBalancer service to expose the proxy externally
+  loadBalancer:
+    enabled: true
+    # -- External port for the LoadBalancer
+    port: 40080
+    # -- Annotations for the LoadBalancer service (add cloud-specific annotations here)
+    # For AWS EKS:
+    #   service.beta.kubernetes.io/aws-load-balancer-type: external
+    #   service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: instance
+    #   service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    # For GCP GKE: no additional annotations needed for basic LoadBalancer
+    # Default annotations are applied automatically based on cloudProvider (aws/gcp).
+    # Any annotations set here will override the defaults.
+    annotations: {}
+
+  # -- Node selector for proxy pods
+  nodeSelector: {}
+  # -- Tolerations for proxy pods
+  tolerations: []
+  # -- Affinity rules for proxy pods
+  affinity: {}
+
+# -- ClickHouse configuration
+clickhouse:
+  image:
+    repository: clickhouse/clickhouse-server
+    tag: latest
+    pullPolicy: Always
+
+  # -- REQUIRED: ClickHouse password
+  password: ""
+  # -- ClickHouse database name
+  database: default
+  # -- ClickHouse username
+  user: default
+
+  # -- Persistent volume configuration for ClickHouse data
+  persistence:
+    enabled: true
+    # -- Storage size for ClickHouse data volume
+    size: 100Gi
+    # -- Storage class name (empty string uses the cluster default)
+    storageClass: ""
+
+  # -- Resource requests and limits for the ClickHouse container
+  resources:
+    requests:
+      cpu: "1"
+      memory: "2Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+
+  # -- S3-compatible object storage for ClickHouse (optional)
+  # Works with both AWS S3 and GCS (via S3-compatible API)
+  s3:
+    enabled: false
+    # -- S3 endpoint URL (e.g., https://s3.us-east-1.amazonaws.com/my-bucket/data/)
+    endpoint: ""
+    # -- S3 region
+    region: ""
+    # -- Explicit credentials (leave empty to use environment/IAM credentials)
+    accessKeyId: ""
+    secretAccessKey: ""
+    # -- Use environment credentials (e.g., IAM roles, workload identity)
+    useEnvironmentCredentials: false
+    cache:
+      # -- Enable local cache for S3 data
+      enabled: true
+      # -- Maximum cache size
+      maxSize: "10Gi"
+
+  # -- Node selector for ClickHouse pods
+  nodeSelector: {}
+  # -- Tolerations for ClickHouse pods
+  tolerations: []
+  # -- Affinity rules for ClickHouse pods
+  affinity: {}

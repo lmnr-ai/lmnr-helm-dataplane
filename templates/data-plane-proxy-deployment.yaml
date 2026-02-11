@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "laminar-dataplane.resourceName" "data-plane-proxy" }}
+  labels:
+    {{- include "laminar-dataplane.labels" . | nindent 4 }}
+    {{- include "laminar-dataplane.selectorLabels" (dict "name" "data-plane-proxy" "context" .) | nindent 4 }}
+spec:
+  replicas: {{ .Values.dataPlaneProxy.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "laminar-dataplane.selectorLabels" (dict "name" "data-plane-proxy" "context" .) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "laminar-dataplane.labels" . | nindent 8 }}
+        {{- include "laminar-dataplane.selectorLabels" (dict "name" "data-plane-proxy" "context" .) | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "laminar-dataplane.resourceName" "workload-sa" }}
+      initContainers:
+        # Wait for ClickHouse to be ready before running migrations
+        - name: wait-for-clickhouse
+          image: busybox:1.37
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for ClickHouse to be ready..."
+              until wget -q --spider http://{{ include "laminar-dataplane.resourceName" "clickhouse" }}:8123/ping 2>/dev/null; do
+                echo "ClickHouse is not ready yet. Retrying in 3 seconds..."
+                sleep 3
+              done
+              echo "ClickHouse is ready!"
+        - name: migration-runner
+          image: "{{ .Values.dataPlaneProxy.initImage.repository }}:{{ .Values.dataPlaneProxy.initImage.tag }}"
+          imagePullPolicy: {{ .Values.dataPlaneProxy.initImage.pullPolicy }}
+          envFrom:
+            - secretRef:
+                name: {{ include "laminar-dataplane.resourceName" "dataplane-secrets" }}
+      containers:
+        - name: data-plane-proxy
+          image: "{{ .Values.dataPlaneProxy.image.repository }}:{{ .Values.dataPlaneProxy.image.tag }}"
+          imagePullPolicy: {{ .Values.dataPlaneProxy.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: {{ include "laminar-dataplane.resourceName" "dataplane-secrets" }}
+          resources:
+            requests:
+              cpu: {{ .Values.dataPlaneProxy.resources.requests.cpu | quote }}
+              memory: {{ .Values.dataPlaneProxy.resources.requests.memory | quote }}
+            limits:
+              cpu: {{ .Values.dataPlaneProxy.resources.limits.cpu | quote }}
+              memory: {{ .Values.dataPlaneProxy.resources.limits.memory | quote }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 12
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+      {{- with .Values.dataPlaneProxy.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.dataPlaneProxy.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.dataPlaneProxy.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

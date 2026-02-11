@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "laminar-dataplane.resourceName" "clickhouse" }}
+  labels:
+    {{- include "laminar-dataplane.labels" . | nindent 4 }}
+    {{- include "laminar-dataplane.selectorLabels" (dict "name" "clickhouse" "context" .) | nindent 4 }}
+spec:
+  serviceName: {{ include "laminar-dataplane.resourceName" "clickhouse" }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "laminar-dataplane.selectorLabels" (dict "name" "clickhouse" "context" .) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "laminar-dataplane.labels" . | nindent 8 }}
+        {{- include "laminar-dataplane.selectorLabels" (dict "name" "clickhouse" "context" .) | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "laminar-dataplane.resourceName" "workload-sa" }}
+      containers:
+        - name: clickhouse
+          image: "{{ .Values.clickhouse.image.repository }}:{{ .Values.clickhouse.image.tag }}"
+          imagePullPolicy: {{ .Values.clickhouse.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8123
+              protocol: TCP
+            - name: native
+              containerPort: 9000
+              protocol: TCP
+          env:
+            - name: CLICKHOUSE_DB
+              value: {{ .Values.clickhouse.database | quote }}
+            - name: CLICKHOUSE_USER
+              value: {{ .Values.clickhouse.user | quote }}
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "laminar-dataplane.resourceName" "dataplane-secrets" }}
+                  key: CLICKHOUSE_PASSWORD
+            - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
+              value: "1"
+          resources:
+            requests:
+              cpu: {{ .Values.clickhouse.resources.requests.cpu | quote }}
+              memory: {{ .Values.clickhouse.resources.requests.memory | quote }}
+            limits:
+              cpu: {{ .Values.clickhouse.resources.limits.cpu | quote }}
+              memory: {{ .Values.clickhouse.resources.limits.memory | quote }}
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: http
+            failureThreshold: 30
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/clickhouse
+            {{- if .Values.clickhouse.s3.enabled }}
+            - name: storage-config
+              mountPath: /etc/clickhouse-server/config.d
+              readOnly: true
+            {{- end }}
+      volumes:
+        {{- if not .Values.clickhouse.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+        {{- if .Values.clickhouse.s3.enabled }}
+        - name: storage-config
+          configMap:
+            name: {{ include "laminar-dataplane.resourceName" "clickhouse-storage-config" }}
+        {{- end }}
+      {{- with .Values.clickhouse.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.clickhouse.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.clickhouse.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.clickhouse.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- if .Values.clickhouse.persistence.storageClass }}
+        storageClassName: {{ .Values.clickhouse.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.clickhouse.persistence.size | quote }}
+  {{- end }}
