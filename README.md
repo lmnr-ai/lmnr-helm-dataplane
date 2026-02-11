@@ -417,8 +417,7 @@ ClickHouse also logs various operational data to system tables (query logs, metr
 </clickhouse>
 ```
 
-Other tables include `query_thread_log`, `trace_log`, `text_log`, `metric_log`, `asynchronous_metric_log`, `part_log`,
-`blob_storage_log`, and `processors_profile_log`. We recommend setting short rotation periods on all of these tables,
+We recommend setting short rotation periods on all of the tables,
 if you enable logging at all.
 
 For more information, see the [ClickHouse logging documentation](https://clickhouse.com/docs/knowledgebase/why_default_logging_verbose).
