@@ -1,0 +1,23 @@
+{{- if .Values.dataPlaneProxy.loadBalancer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "laminar-dataplane.resourceName" "data-plane-proxy-lb" }}
+  labels:
+    {{- include "laminar-dataplane.labels" . | nindent 4 }}
+    {{- include "laminar-dataplane.selectorLabels" (dict "name" "data-plane-proxy" "context" .) | nindent 4 }}
+  {{- $annotations := include "laminar-dataplane.lbAnnotations" . }}
+  {{- if $annotations }}
+  annotations:
+    {{- $annotations | nindent 4 }}
+  {{- end }}
+spec:
+  type: LoadBalancer
+  ports:
+    - name: http
+      port: {{ .Values.dataPlaneProxy.loadBalancer.port }}
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    {{- include "laminar-dataplane.selectorLabels" (dict "name" "data-plane-proxy" "context" .) | nindent 4 }}
+{{- end }}

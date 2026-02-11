@@ -1,0 +1,118 @@
+{{- if .Values.clickhouse.s3.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "laminar-dataplane.resourceName" "clickhouse-storage-config" }}
+  labels:
+    {{- include "laminar-dataplane.labels" . | nindent 4 }}
+data:
+  storage_config.xml: |
+    <clickhouse>
+      <!-- Listen on all interfaces for Kubernetes pod access -->
+      <listen_host>0.0.0.0</listen_host>
+      <storage_configuration>
+        <disks>
+          <s3_disk>
+            <type>s3</type>
+            <endpoint>{{ .Values.clickhouse.s3.endpoint }}</endpoint>
+            {{- if .Values.clickhouse.s3.region }}
+            <region>{{ .Values.clickhouse.s3.region }}</region>
+            {{- end }}
+            {{- /* Always use environment credentials (either from IAM/Workload Identity or from Secret env vars) */ -}}
+            <use_environment_credentials>true</use_environment_credentials>
+            <metadata_path>/var/lib/clickhouse/disks/s3_disk/</metadata_path>
+          </s3_disk>
+          {{- if .Values.clickhouse.s3.cache.enabled }}
+          <s3_cache>
+            <type>cache</type>
+            <disk>s3_disk</disk>
+            <path>/var/lib/clickhouse/disks/s3_cache/</path>
+            <max_size>{{ .Values.clickhouse.s3.cache.maxSize }}</max_size>
+          </s3_cache>
+          {{- end }}
+        </disks>
+        <policies>
+          <s3_main>
+            <volumes>
+              <main>
+                {{- if .Values.clickhouse.s3.cache.enabled }}
+                <disk>s3_cache</disk>
+                {{- else }}
+                <disk>s3_disk</disk>
+                {{- end }}
+              </main>
+            </volumes>
+          </s3_main>
+        </policies>
+      </storage_configuration>
+      <merge_tree>
+        <storage_policy>s3_main</storage_policy>
+      </merge_tree>
+      <!-- System log tables TTL configuration to prevent unbounded storage growth -->
+      <query_log>
+        <database>system</database>
+        <table>query_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_date + INTERVAL 48 HOUR</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+      </query_log>
+      <query_thread_log>
+        <database>system</database>
+        <table>query_thread_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_date + INTERVAL 48 HOUR</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+      </query_thread_log>
+      <trace_log>
+        <database>system</database>
+        <table>trace_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_date + INTERVAL 48 HOUR</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+      </trace_log>
+      <text_log>
+        <database>system</database>
+        <table>text_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_date + INTERVAL 48 HOUR</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        <level>information</level>
+      </text_log>
+      <metric_log>
+        <database>system</database>
+        <table>metric_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_date + INTERVAL 48 HOUR</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        <collect_interval_milliseconds>1000</collect_interval_milliseconds>
+      </metric_log>
+      <asynchronous_metric_log>
+        <database>system</database>
+        <table>asynchronous_metric_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_date + INTERVAL 48 HOUR</ttl>
+        <flush_interval_milliseconds>7000</flush_interval_milliseconds>
+      </asynchronous_metric_log>
+      <part_log>
+        <database>system</database>
+        <table>part_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_date + INTERVAL 48 HOUR</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+      </part_log>
+      <blob_storage_log>
+        <database>system</database>
+        <table>blob_storage_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_date + INTERVAL 48 HOUR</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+      </blob_storage_log>
+      <processors_profile_log>
+        <database>system</database>
+        <table>processors_profile_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_date + INTERVAL 48 HOUR</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+      </processors_profile_log>
+    </clickhouse>
+{{- end }}

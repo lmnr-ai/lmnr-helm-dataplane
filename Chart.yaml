@@ -1,0 +1,7 @@
+apiVersion: v2
+name: laminar-dataplane
+description: Laminar Data Plane - self-hosted ClickHouse with authenticated access via Data Plane Proxy
+type: application
+version: 0.1.0
+appVersion: "latest"
+icon: https://raw.githubusercontent.com/lmnr-ai/lmnr-helm-dataplane/main/favicon.png
