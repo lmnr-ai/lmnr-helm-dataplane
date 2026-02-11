@@ -166,7 +166,7 @@ def main() -> None:
         if not confirm:
             print()
             print_info("Installation cancelled. Your configuration is saved in laminar.yaml.")
-            print_info("You can edit it and run: python3 install.py update-only")
+            print_info("You can edit it and run: python3 install.py --update-only")
             sys.exit(0)
 
         args = build_helm_cmd(namespace)
