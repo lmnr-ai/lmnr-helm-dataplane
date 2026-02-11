@@ -50,7 +50,8 @@ def build_values(config: Dict[str, Any]) -> Dict[str, Any]:
         lb = {'enabled': config['lb_enabled']}
         if config.get('lb_enabled'):
             if 'lb_port' in config:
-                lb['port'] = int(config['lb_port'])
+                # lb_port is already an integer from get_int_input()
+                lb['port'] = config['lb_port']
             if 'lb_annotations' in config and config['lb_annotations']:
                 lb['annotations'] = config['lb_annotations']
         proxy['loadBalancer'] = lb

@@ -23,6 +23,7 @@ from _install_helpers.config import configure
 from _install_helpers.values import (
     build_values, write_values_file_with_namespace, read_namespace_from_values
 )
+from _install_helpers.yaml_utils import is_loadbalancer_disabled
 from _install_helpers.helm import build_helm_cmd, run_helm, wait_for_pods_ready, get_load_balancer_url
 
 
@@ -63,7 +64,7 @@ def update_only() -> None:
         print_info("Check pod status: kubectl get pods -n " + namespace)
 
     content = VALUES_FILE.read_text()
-    lb_disabled = 'enabled: false' in content and 'loadBalancer:' in content
+    lb_disabled = is_loadbalancer_disabled(content)
     
     total_elapsed = int(time.time() - start_time)
     mins = total_elapsed // 60

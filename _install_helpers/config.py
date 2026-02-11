@@ -10,7 +10,7 @@ from .constants import (
 )
 from .ui import print_section, print_info, print_success, print_warning
 from .input_utils import (
-    get_input, get_yes_no, get_choice,
+    get_input, get_yes_no, get_choice, get_int_input,
     generate_secure_password, generate_bucket_suffix
 )
 from .prerequisites import check_cloud_cli
@@ -169,15 +169,15 @@ def _configure_storage(config: Dict[str, Any], context: Optional[str]) -> None:
                     config['region'],
                 )
                 config['s3_region'] = config['region']
-            
-            print()
-            config['s3_use_env_creds'] = get_yes_no(
-                "Use IAM / Workload Identity for bucket access (recommended)?",
-                default=True
-            )
-            if not config['s3_use_env_creds']:
-                config['s3_access_key'] = get_input("Access Key ID", required=True)
-                config['s3_secret_key'] = getpass.getpass("Secret Access Key: ")
+                
+                print()
+                config['s3_use_env_creds'] = get_yes_no(
+                    "Use IAM / Workload Identity for bucket access (recommended)?",
+                    default=True
+                )
+                if not config['s3_use_env_creds']:
+                    config['s3_access_key'] = get_input("Access Key ID", required=True)
+                    config['s3_secret_key'] = getpass.getpass("Secret Access Key: ")
     
     if not use_existing:
         print_info("Laminar Data Plane can use cloud object storage (S3 / GCS) for:")
@@ -351,8 +351,11 @@ def _configure_advanced(config: Dict[str, Any]) -> None:
 
     print()
     print_info("Data Plane Proxy configuration:")
-    replicas = get_input("Number of proxy replicas", default=str(DEFAULT_PROXY_REPLICAS))
-    config['proxy_replicas'] = int(replicas)
+    config['proxy_replicas'] = get_int_input(
+        "Number of proxy replicas",
+        default=DEFAULT_PROXY_REPLICAS,
+        min_value=1
+    )
 
     configure_proxy_resources = get_yes_no("Configure proxy resource limits?", default=False)
     if configure_proxy_resources:
@@ -376,7 +379,12 @@ def _configure_advanced(config: Dict[str, Any]) -> None:
     config['lb_enabled'] = get_yes_no("Enable external LoadBalancer?", default=True)
     
     if config['lb_enabled']:
-        config['lb_port'] = get_input("External port", default=DEFAULT_LB_PORT)
+        config['lb_port'] = get_int_input(
+            "External port",
+            default=int(DEFAULT_LB_PORT),
+            min_value=1,
+            max_value=65535
+        )
 
         print()
         print_info("Default LoadBalancer annotations are applied automatically")

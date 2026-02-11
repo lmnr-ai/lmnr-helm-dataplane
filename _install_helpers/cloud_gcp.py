@@ -67,21 +67,32 @@ def create_gcs_hmac_keys(
         print_error(f"Failed to create service account: {result.stderr}")
         return None
     
-    print_info("Granting Storage Object Admin role...")
-    result = subprocess.run(
-        [
-            'gcloud', 'projects', 'add-iam-policy-binding', project_id,
-            '--member', f'serviceAccount:{sa_email}',
-            '--role', 'roles/storage.objectAdmin',
-            '--condition', 'None'
-        ],
-        capture_output=True, text=True
-    )
+    # Grant bucket-level permissions (scope to specific buckets, not project-wide)
+    print_info(f"Granting Storage Object Admin role on {len(buckets)} bucket(s)...")
+    all_success = True
+    for bucket in buckets:
+        result = subprocess.run(
+            [
+                'gcloud', 'storage', 'buckets', 'add-iam-policy-binding',
+                f'gs://{bucket}',
+                '--member', f'serviceAccount:{sa_email}',
+                '--role', 'roles/storage.objectAdmin'
+            ],
+            capture_output=True, text=True
+        )
+        
+        if result.returncode == 0:
+            print_success(f"  ✓ Permissions granted for bucket: {bucket}")
+        else:
+            # Check if it's just a "binding already exists" case
+            if 'already exists' in result.stderr.lower() or 'no change' in result.stderr.lower():
+                print_info(f"  ✓ Permissions already exist for bucket: {bucket}")
+            else:
+                print_warning(f"  ✗ Failed to grant permissions for bucket {bucket}: {result.stderr[:100]}")
+                all_success = False
     
-    if result.returncode == 0:
-        print_success("Storage permissions granted")
-    else:
-        print_warning(f"Policy binding may have failed (might already exist): {result.stderr[:100]}")
+    if not all_success:
+        print_warning("Some bucket permissions may need manual configuration")
     
     print_info(f"Creating HMAC keys for service account: {sa_email}...")
     result = subprocess.run(
