@@ -69,7 +69,8 @@ spec:
               mountPath: /var/lib/clickhouse
             {{- if .Values.clickhouse.s3.enabled }}
             - name: storage-config
-              mountPath: /etc/clickhouse-server/config.d
+              mountPath: /etc/clickhouse-server/config.d/storage_config.xml
+              subPath: storage_config.xml
               readOnly: true
             {{- end }}
       volumes:

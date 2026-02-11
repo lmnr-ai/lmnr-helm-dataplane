@@ -149,6 +149,9 @@ def _configure_storage(config: Dict[str, Any], context: Optional[str]) -> None:
     existing_buckets = parse_existing_buckets()
     use_existing = False
     
+    # Check cloud CLI availability upfront (needed in multiple paths)
+    has_cloud_cli = check_cloud_cli(config['cloud_provider'])
+    
     if existing_buckets:
         print_success("Found existing bucket configuration in laminar.yaml:")
         if 'ch_bucket' in existing_buckets:
@@ -185,7 +188,6 @@ def _configure_storage(config: Dict[str, Any], context: Optional[str]) -> None:
         print_info(f"You can either let this script create the bucket (requires {cli_desc})")
         print_info("installed), or create it manually in advance.")
 
-        has_cloud_cli = check_cloud_cli(config['cloud_provider'])
         if has_cloud_cli:
             print_success(f"{cli_desc} is available")
         else:
