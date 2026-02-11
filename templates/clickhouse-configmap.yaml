@@ -10,6 +10,13 @@ data:
     <clickhouse>
       <!-- Listen on all interfaces for Kubernetes pod access -->
       <listen_host>0.0.0.0</listen_host>
+      <!-- Disable logging by default to reduce storage overhead and I/O.
+           ClickHouse defaults to 'trace' level which is extremely verbose.
+           To re-enable logging, change 'none' to 'warning' or 'error'.
+           See README for more details. -->
+      <logger>
+        <level>none</level>
+      </logger>
       <storage_configuration>
         <disks>
           <s3_disk>
@@ -48,71 +55,5 @@ data:
       <merge_tree>
         <storage_policy>s3_main</storage_policy>
       </merge_tree>
-      <!-- System log tables TTL configuration to prevent unbounded storage growth -->
-      <query_log>
-        <database>system</database>
-        <table>query_log</table>
-        <partition_by>toYYYYMM(event_date)</partition_by>
-        <ttl>event_date + INTERVAL 48 HOUR</ttl>
-        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
-      </query_log>
-      <query_thread_log>
-        <database>system</database>
-        <table>query_thread_log</table>
-        <partition_by>toYYYYMM(event_date)</partition_by>
-        <ttl>event_date + INTERVAL 48 HOUR</ttl>
-        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
-      </query_thread_log>
-      <trace_log>
-        <database>system</database>
-        <table>trace_log</table>
-        <partition_by>toYYYYMM(event_date)</partition_by>
-        <ttl>event_date + INTERVAL 48 HOUR</ttl>
-        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
-      </trace_log>
-      <text_log>
-        <database>system</database>
-        <table>text_log</table>
-        <partition_by>toYYYYMM(event_date)</partition_by>
-        <ttl>event_date + INTERVAL 48 HOUR</ttl>
-        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
-        <level>information</level>
-      </text_log>
-      <metric_log>
-        <database>system</database>
-        <table>metric_log</table>
-        <partition_by>toYYYYMM(event_date)</partition_by>
-        <ttl>event_date + INTERVAL 48 HOUR</ttl>
-        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
-        <collect_interval_milliseconds>1000</collect_interval_milliseconds>
-      </metric_log>
-      <asynchronous_metric_log>
-        <database>system</database>
-        <table>asynchronous_metric_log</table>
-        <partition_by>toYYYYMM(event_date)</partition_by>
-        <ttl>event_date + INTERVAL 48 HOUR</ttl>
-        <flush_interval_milliseconds>7000</flush_interval_milliseconds>
-      </asynchronous_metric_log>
-      <part_log>
-        <database>system</database>
-        <table>part_log</table>
-        <partition_by>toYYYYMM(event_date)</partition_by>
-        <ttl>event_date + INTERVAL 48 HOUR</ttl>
-        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
-      </part_log>
-      <blob_storage_log>
-        <database>system</database>
-        <table>blob_storage_log</table>
-        <partition_by>toYYYYMM(event_date)</partition_by>
-        <ttl>event_date + INTERVAL 48 HOUR</ttl>
-        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
-      </blob_storage_log>
-      <processors_profile_log>
-        <database>system</database>
-        <table>processors_profile_log</table>
-        <partition_by>toYYYYMM(event_date)</partition_by>
-        <ttl>event_date + INTERVAL 48 HOUR</ttl>
-        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
-      </processors_profile_log>
     </clickhouse>
 {{- end }}
